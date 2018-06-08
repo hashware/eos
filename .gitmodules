@@ -1,29 +1,29 @@
 [submodule "libraries/chainbase"]
 	path = libraries/chainbase
-	url = https://github.com/eosio/chainbase
+	url = git@github.com:hashware/chainbase-zh
         ignore = dirty
 [submodule "libraries/appbase"]
 	path = libraries/appbase
-	url = https://github.com/eosio/appbase
+	url = git@github.com:hashware/appbase-zh
         ignore = dirty
 [submodule "contracts/musl/upstream"]
 	path = contracts/musl/upstream
-	url = https://github.com/EOSIO/musl.git
+	url = git@github.com:hashware/musl-zh.git
 	branch = eosio
 [submodule "contracts/libc++/upstream"]
 	path = contracts/libc++/upstream
-	url = https://github.com/EOSIO/libcxx.git
+	url = git@github.com:hashware/libcxx-zh.git
 	branch = eosio
 [submodule "externals/binaryen"]
 	path = externals/binaryen
-	url = https://github.com/EOSIO/binaryen
+	url = git@github.com:hashware/binaryen-zh
 
 [submodule "libraries/softfloat"]
 	path = libraries/softfloat
-	url = https://github.com/eosio/berkeley-softfloat-3
+	url = git@github.com:hashware/berkeley-softfloat-3-zh
 [submodule "externals/magic_get"]
 	path = externals/magic_get
-	url = https://github.com/EOSIO/magic_get
+	url = git@github.com:hashware/magic_get-zh
 [submodule "libraries/fc"]
 	path = libraries/fc
-	url = https://github.com/EOSIO/fc
+	url = git@github.com:hashware/fc-zh
