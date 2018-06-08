@@ -2,10 +2,12 @@
 	path = libraries/chainbase
 	url = git@github.com:hashware/chainbase-zh
         ignore = dirty
+    branch = eos-zh
 [submodule "libraries/appbase"]
 	path = libraries/appbase
 	url = git@github.com:hashware/appbase-zh
         ignore = dirty
+    branch = eos-zh
 [submodule "contracts/musl/upstream"]
 	path = contracts/musl/upstream
 	url = git@github.com:hashware/musl-zh.git
@@ -17,13 +19,17 @@
 [submodule "externals/binaryen"]
 	path = externals/binaryen
 	url = git@github.com:hashware/binaryen-zh
+    branch = eos-zh
 
 [submodule "libraries/softfloat"]
 	path = libraries/softfloat
 	url = git@github.com:hashware/berkeley-softfloat-3-zh
+    branch = eos-zh
 [submodule "externals/magic_get"]
 	path = externals/magic_get
 	url = git@github.com:hashware/magic_get-zh
+    branch = eos-zh
 [submodule "libraries/fc"]
 	path = libraries/fc
 	url = git@github.com:hashware/fc-zh
+    branch = eos-zh
