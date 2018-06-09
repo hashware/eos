@@ -162,6 +162,7 @@ bool   tx_dont_broadcast = false;
 bool   tx_skip_sign = false;
 bool   tx_print_json = false;
 bool   print_request = false;
+bool   print_response = false;
 
 uint8_t  tx_max_cpu_usage = 0;
 uint32_t tx_max_net_usage = 0;
@@ -215,7 +216,7 @@ fc::variant call( const std::string& url,
       eosio::client::http::connection_param *cp = new eosio::client::http::connection_param((std::string&)url, (std::string&)path,
               no_verify ? false : true, headers);
 
-      return eosio::client::http::do_http_call( *cp, fc::variant(v), print_request );
+      return eosio::client::http::do_http_call( *cp, fc::variant(v), print_request, print_response );
    }
    catch(boost::system::system_error& e) {
       if(url == ::url)
@@ -457,37 +458,12 @@ chain::action create_delegate(const name& from, const name& receiver, const asse
                         config::system_account_name, N(delegatebw), act_payload);
 }
 
-fc::variant regproducer_variant(const account_name& producer,
-                                public_key_type key,
-                                string url, uint16_t location = 0) {
-   /*
-   fc::variant_object params = fc::mutable_variant_object()
-         ("max_block_net_usage", config::default_max_block_net_usage)
-         ("target_block_net_usage_pct", config::default_target_block_net_usage_pct)
-         ("max_transaction_net_usage", config::default_max_transaction_net_usage)
-         ("base_per_transaction_net_usage", config::default_base_per_transaction_net_usage)
-         ("net_usage_leeway", config::default_net_usage_leeway)
-         ("context_free_discount_net_usage_num", config::default_context_free_discount_net_usage_num)
-         ("context_free_discount_net_usage_den", config::default_context_free_discount_net_usage_den)
-         ("max_block_cpu_usage", config::default_max_block_cpu_usage)
-         ("target_block_cpu_usage_pct", config::default_target_block_cpu_usage_pct)
-         ("max_transaction_cpu_usage", config::default_max_transaction_cpu_usage)
-         ("max_transaction_lifetime", config::default_max_trx_lifetime)
-         ("deferred_trx_expiration_window", config::default_deferred_trx_expiration_window)
-         ("max_transaction_delay", config::default_max_trx_delay)
-         ("max_inline_action_size", config::default_max_inline_action_size)
-         ("max_inline_depth", config::default_max_inline_action_depth)
-         ("max_authority_depth", config::default_max_auth_depth)
-         ("max_storage_size", max_storage_size)
-         ("percent_of_max_inflation_rate", percent_of_max_inflation_rate)
-         ("storage_reserve_ratio", storage_reserve_ratio);
-         */
-
+fc::variant regproducer_variant(const account_name& producer, const public_key_type& key, const string& url, uint16_t location) {
    return fc::mutable_variant_object()
             ("producer", producer)
             ("producer_key", key)
             ("url", url)
-            ("location", 0)
+            ("location", location)
             ;
 }
 
@@ -805,7 +781,7 @@ struct register_producer_subcommand {
       register_producer->add_option("account", producer_str, localized("The account to register as a producer"))->required();
       register_producer->add_option("producer_key", producer_key_str, localized("The producer's public key"))->required();
       register_producer->add_option("url", url, localized("url where info about producer can be found"), true);
-      register_producer->add_option("location", loc, localized("relative location for purpose of nearest neighbor scheduling"), 0);
+      register_producer->add_option("location", loc, localized("relative location for purpose of nearest neighbor scheduling"), true);
       add_standard_transaction_options(register_producer);
 
 
@@ -1422,14 +1398,22 @@ void get_account( const string& accountName, bool json_format ) {
       std::cout << "memory: " << std::endl
                 << indent << "quota: " << std::setw(15) << to_pretty_net(res.ram_quota) << "  used: " << std::setw(15) << to_pretty_net(res.ram_usage) << std::endl << std::endl;
 
-      std::cout << "net bandwidth: (averaged over 3 days)" << std::endl;
+      std::cout << "net bandwidth: " << std::endl;
       if ( res.total_resources.is_object() ) {
-         asset net_own = res.delegated_bandwidth.is_object() ? asset::from_string( res.delegated_bandwidth.get_object()["net_weight"].as_string() ) : asset(0) ;
-         auto net_others = to_asset(res.total_resources.get_object()["net_weight"].as_string()) - net_own;
-         std::cout << indent << "staked:" << std::setw(20) << net_own
-                   << std::string(11, ' ') << "(total stake delegated from account to self)" << std::endl
-                   << indent << "delegated:" << std::setw(17) << net_others
-                   << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         if( res.self_delegated_bandwidth.is_object() ) {
+            asset net_own =  asset::from_string( res.self_delegated_bandwidth.get_object()["net_weight"].as_string() );
+            auto net_others = to_asset(res.total_resources.get_object()["net_weight"].as_string()) - net_own;
+
+            std::cout << indent << "staked:" << std::setw(20) << net_own
+                      << std::string(11, ' ') << "(total stake delegated from account to self)" << std::endl
+                      << indent << "delegated:" << std::setw(17) << net_others
+                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         }
+         else {
+            auto net_others = to_asset(res.total_resources.get_object()["net_weight"].as_string());
+            std::cout << indent << "delegated:" << std::setw(17) << net_others
+                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         }
       }
 
 
@@ -1470,17 +1454,21 @@ void get_account( const string& accountName, bool json_format ) {
       std::cout << indent << std::left << std::setw(11) << "limit:"     << std::right << std::setw(18) << to_pretty_net( res.net_limit.max ) << "\n";
       std::cout << std::endl;
 
-
-      std::cout << "cpu bandwidth: (averaged over 3 days)" << std::endl;
-
+      std::cout << "cpu bandwidth:" << std::endl;
 
       if ( res.total_resources.is_object() ) {
-         asset cpu_own = res.delegated_bandwidth.is_object() ? asset::from_string( res.delegated_bandwidth.get_object()["cpu_weight"].as_string() ) : asset(0) ;
-         auto cpu_others = to_asset(res.total_resources.get_object()["cpu_weight"].as_string()) - cpu_own;
-         std::cout << indent << "staked:" << std::setw(20) << cpu_own
-                   << std::string(11, ' ') << "(total stake delegated from account to self)" << std::endl
-                   << indent << "delegated:" << std::setw(17) << cpu_others
-                   << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         if( res.self_delegated_bandwidth.is_object() ) {
+            asset cpu_own = asset::from_string( res.self_delegated_bandwidth.get_object()["cpu_weight"].as_string() );
+            auto cpu_others = to_asset(res.total_resources.get_object()["cpu_weight"].as_string()) - cpu_own;
+            std::cout << indent << "staked:" << std::setw(20) << cpu_own
+                      << std::string(11, ' ') << "(total stake delegated from account to self)" << std::endl
+                      << indent << "delegated:" << std::setw(17) << cpu_others
+                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         } else {
+            auto cpu_others = to_asset(res.total_resources.get_object()["cpu_weight"].as_string());
+            std::cout << indent << "delegated:" << std::setw(17) << cpu_others
+                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         }
       }
 
 
@@ -1550,6 +1538,7 @@ int main( int argc, char** argv ) {
    bool verbose_errors = false;
    app.add_flag( "-v,--verbose", verbose_errors, localized("output verbose actions on error"));
    app.add_flag("--print-request", print_request, localized("print HTTP request to STDERR"));
+   app.add_flag("--print-response", print_response, localized("print HTTP response to STDERR"));
 
    auto version = app.add_subcommand("version", localized("Retrieve version information"), false);
    version->require_subcommand();
@@ -1562,14 +1551,24 @@ int main( int argc, char** argv ) {
    auto create = app.add_subcommand("create", localized("Create various items, on and off the blockchain"), false);
    create->require_subcommand();
 
+   bool r1 = false;
    // create key
-   create->add_subcommand("key", localized("Create a new keypair and print the public and private keys"))->set_callback( [](){
-      auto pk    = private_key_type::generate();
-      auto privs = string(pk);
-      auto pubs  = string(pk.get_public_key());
-      std::cout << localized("Private key: ${key}", ("key",  privs) ) << std::endl;
-      std::cout << localized("Public key: ${key}", ("key", pubs ) ) << std::endl;
+   auto create_key = create->add_subcommand("key", localized("Create a new keypair and print the public and private keys"))->set_callback( [&r1](){
+      if( r1 ) {
+         auto pk    = private_key_type::generate_r1();
+         auto privs = string(pk);
+         auto pubs  = string(pk.get_public_key());
+         std::cout << localized("Private key: ${key}", ("key",  privs) ) << std::endl;
+         std::cout << localized("Public key: ${key}", ("key", pubs ) ) << std::endl;
+      } else {
+         auto pk    = private_key_type::generate();
+         auto privs = string(pk);
+         auto pubs  = string(pk.get_public_key());
+         std::cout << localized("Private key: ${key}", ("key",  privs) ) << std::endl;
+         std::cout << localized("Public key: ${key}", ("key", pubs ) ) << std::endl;
+      }
    });
+   create_key->add_flag( "--r1", r1, "Generate a key using the R1 curve (iPhone), instead of the K1 curve (Bitcoin)"  );
 
    // create account
    auto createAccount = create_account_subcommand( create, true /*simple*/ );
@@ -2302,9 +2301,11 @@ int main( int argc, char** argv ) {
    add_standard_transaction_options(actionsSubcommand);
    actionsSubcommand->set_callback([&] {
       fc::variant action_args_var;
-      try {
-         action_args_var = json_from_file_or_string(data, fc::json::relaxed_parser);
-      } EOS_RETHROW_EXCEPTIONS(action_type_exception, "Fail to parse action JSON data='${data}'", ("data",data))
+      if( !data.empty() ) {
+         try {
+            action_args_var = json_from_file_or_string(data, fc::json::relaxed_parser);
+         } EOS_RETHROW_EXCEPTIONS(action_type_exception, "Fail to parse action JSON data='${data}'", ("data", data))
+      }
 
       auto arg= fc::mutable_variant_object
                 ("code", contract_account)
