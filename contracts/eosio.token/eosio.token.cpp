@@ -31,6 +31,7 @@ void token::create( account_name issuer,
 
 void token::issue( account_name to, asset quantity, string memo )
 {
+    // 币符号，字符串
     auto sym = quantity.symbol;
     eosio_assert( sym.is_valid(), "invalid symbol name" );
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
@@ -41,6 +42,7 @@ void token::issue( account_name to, asset quantity, string memo )
     eosio_assert( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
     const auto& st = *existing;
 
+    // 发行人才可执行本操作
     require_auth( st.issuer );
     eosio_assert( quantity.is_valid(), "invalid quantity" );
     eosio_assert( quantity.amount > 0, "must issue positive quantity" );
@@ -85,6 +87,7 @@ void token::transfer( account_name from,
 }
 
 void token::sub_balance( account_name owner, asset value ) {
+    // 建立查询索引
    accounts from_acnts( _self, owner );
 
    const auto& from = from_acnts.get( value.symbol.name(), "no balance object found" );

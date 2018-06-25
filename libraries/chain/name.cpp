@@ -19,6 +19,7 @@ namespace eosio { namespace chain {
    name::operator string()const {
      static const char* charmap = ".12345abcdefghijklmnopqrstuvwxyz";
 
+        // 初始化为13个 '.'
       string str(13,'.');
 
       uint64_t tmp = value;

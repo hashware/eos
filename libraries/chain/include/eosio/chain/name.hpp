@@ -7,6 +7,7 @@ namespace eosio { namespace chain {
    using std::string;
 
    static constexpr uint64_t char_to_symbol( char c ) {
+        // 映射到base32 '.12345abcdefghijklmnopqrstuvwxyz' 的index
       if( c >= 'a' && c <= 'z' )
          return (c - 'a') + 6;
       if( c >= '1' && c <= '5' )
@@ -20,6 +21,7 @@ namespace eosio { namespace chain {
    // and placed in the lowest 4 bits. 64 = 12 * 5 + 4
    static constexpr uint64_t string_to_name( const char* str )
    {
+        // 字符串转换为64bit整数
       uint64_t name = 0;
       int i = 0;
       for ( ; str[i] && i < 12; ++i) {

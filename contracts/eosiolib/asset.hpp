@@ -8,6 +8,7 @@
 
 namespace eosio {
 
+    // 资产，包含数量和代币符号
    struct asset {
       int64_t      amount;
       symbol_type  symbol;
