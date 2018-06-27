@@ -3,7 +3,8 @@
 echo -e "\033[42;37m============================================================\033[0m"
 echo -e "\033[42;37m= fetch upstream =\033[0m"
 
-git submodule foreach --recursive "git fetch upstream"
+git fetch upstream; echo
+git submodule foreach --recursive "git fetch upstream; echo"
 
 echo -e "\033[42;37m============================================================\033[0m"
 echo -e "\033[42;37m= merge upstream =\033[0m"
